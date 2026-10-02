@@ -4,6 +4,7 @@ import { mkdir, writeFile, copyFile } from "node:fs/promises";
 const BASE = "https://www.ynet.co.il/Integration/";
 const SECTIONS = [
   { slug: "index", id: "StoryRss2", name: "חדשות" },
+  { slug: "digital", id: "StoryRss544", name: "דיגיטל" },
   { slug: "flash", id: "StoryRss1854", name: "מבזקים" },
   { slug: "economy", id: "StoryRss6", name: "כלכלה" },
   { slug: "sport", id: "StoryRss3", name: "ספורט" },
@@ -66,12 +67,12 @@ const fmtTime = new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit"
 const fmtDay = new Intl.DateTimeFormat("he-IL", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
 
-function page(section, items, built) {
+function page(section, items, built, flashItems = []) {
   const nav = SECTIONS.map(
     (s) => `<a href="${s.slug === "index" ? "./" : s.slug + ".html"}"${s.slug === section.slug ? ' aria-current="page"' : ""}>${s.name}</a>`
   ).join("");
   let out = "", lastDay = "";
-  for (const it of items) {
+  for (const [idx, it] of items.entries()) {
     const k = dayKey(it.date);
     if (k !== lastDay) { out += `<h2>${esc(fmtDay.format(it.date))}</h2>`; lastDay = k; }
     out += `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">`;
@@ -79,6 +80,9 @@ function page(section, items, built) {
     out += `<span class="b"><span class="h">${esc(it.title)}</span>`;
     if (it.summary) out += `<span class="s">${esc(it.summary)}</span>`;
     out += `<time datetime="${it.date.toISOString()}">${fmtTime.format(it.date)}</time></span></a></article>`;
+    if (section.slug === "index" && idx === 1) {
+      out += `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/read?u=${encodeURIComponent(f.link)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`;
+    }
   }
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8">
@@ -109,15 +113,17 @@ article{border-bottom:1px solid var(--ln)}
 .h{font-weight:700;font-size:18px}.s{color:var(--mut);font-size:15px}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
+.flashes{margin:8px 0 12px;padding:10px 12px;background:color-mix(in srgb,var(--ln) 45%,var(--bg));border-radius:8px}.flashes h2{margin:0 0 4px;color:var(--ac)}.flashes a{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:600}.flashes time{white-space:nowrap}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
 await mkdir("dist", { recursive: true });
 const built = new Date();
+const flashItems = (await fetchFeed("StoryRss1854")).sort((a, b) => b.date - a.date).slice(0, 4);
 let ok = 0;
 for (const s of SECTIONS) {
   try {
     const items = (await fetchFeed(s.id)).sort((a, b) => b.date - a.date);
-    await writeFile(`dist/${s.slug === "index" ? "index" : s.slug}.html`, page(s, items, built));
+    await writeFile(`dist/${s.slug === "index" ? "index" : s.slug}.html`, page(s, items, built, flashItems));
     ok++; console.log(`${s.name}: ${items.length} items`);
   } catch (e) { console.error("FAILED", s.name, String(e)); }
 }
