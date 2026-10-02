@@ -106,6 +106,9 @@ const fmtTime = new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit"
 const fmtDay = new Intl.DateTimeFormat("he-IL", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
 
+
+const flashRow = (f) => `<details class="fl"><summary><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></summary><div class="fb">${f.img ? `<img src="${esc(f.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}${f.summary && f.summary !== f.title ? `<p>${esc(f.summary)}</p>` : ""}<a href="/read?u=${encodeURIComponent(f.link)}">לכתבה המלאה ‹</a></div></details>`;
+
 function page(section, items, built, flashItems = [], feeds = new Map(), home = null) {
   const nav = [{ slug: "index", name: "ראשי" }, ...SECTIONS].map(
     (s) => `<a href="${s.slug === "index" ? "./" : s.slug + ".html"}"${s.slug === section.slug ? ' aria-current="page"' : ""}>${s.name}</a>`
@@ -120,7 +123,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
     if (it.summary) out += `<span class="s">${esc(it.summary)}</span>`;
     out += `<time datetime="${it.date.toISOString()}">${fmtTime.format(it.date)}</time></span></a></article>`;
     if (section.slug === "index" && idx === 1) {
-      out += `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/flash?ft=${encodeURIComponent(f.title)}&amp;fs=${encodeURIComponent(f.summary || f.title)}&amp;fi=${encodeURIComponent(f.img)}&amp;fd=${encodeURIComponent(fmtTime.format(f.date))}&amp;fo=${encodeURIComponent(f.source)}&amp;fu=${encodeURIComponent(f.link)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`;
+      out += `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map(flashRow).join("")}</section>`;
     }
   }
   if (section.slug === "index") {
@@ -149,7 +152,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
         `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`
       );
       if (name === "חדשות" && flashItems.length) rows.splice(2, 0,
-        `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/flash?ft=${encodeURIComponent(f.title)}&amp;fs=${encodeURIComponent(f.summary || f.title)}&amp;fi=${encodeURIComponent(f.img)}&amp;fd=${encodeURIComponent(fmtTime.format(f.date))}&amp;fo=${encodeURIComponent(f.source)}&amp;fu=${encodeURIComponent(f.link)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`);
+        `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map(flashRow).join("")}</section>`);
       return `<section class="home-category" data-category="${slug || "x"}"><h2 class="category-heading">${heading}</h2>${rows.join("") || `<p class="feed-unavailable">הכותרות אינן זמינות כרגע</p>`}</section>`;
     }).join("");
   }
@@ -158,7 +161,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>${section.name} | ynet נקי</title>
-<link rel="stylesheet" href="/style.css?v=tagline"></head><body>
+<link rel="stylesheet" href="/style.css?v=flashpanel"></head><body>
 <header><h1>ynet נקי<span class="tag">בלי ספאם, רק תוכן</span></h1><nav>${nav}</nav></header>
 <main>${out}</main>
 <footer>עודכן ${esc(fmtDay.format(built))} ${fmtTime.format(built)}. כותרות ותקצירים מ-RSS של ynet; הכתבות נטענות מ-ynet בזמן קריאה.</footer>
@@ -182,7 +185,7 @@ article{border-bottom:1px solid var(--ln)}
 .h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
-.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:11px}
+.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:11px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;cursor:pointer;list-style:none;font-weight:500;font-size:12px;line-height:1.2}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:4px 0 8px;font-size:14px;line-height:1.4}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
 @media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:48px;height:48px}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
