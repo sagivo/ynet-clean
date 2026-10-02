@@ -8,3 +8,4 @@
 .reader figcaption{font-size:13px;color:var(--mut);margin-top:4px}
 .orig,.note{font-size:14px!important;color:var(--mut)}
 header h1 a{color:inherit;text-decoration:none}
+.reader p,.reader h2,.reader .title{overflow-wrap:anywhere}
