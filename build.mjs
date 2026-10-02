@@ -103,6 +103,21 @@ async function fetchHome() {
     for (let i = 0; i < bounds.length - 1; i++) {
       const seg = h.slice(bounds[i].pos, bounds[i + 1].pos);
       const byId = new Map();
+      if (bounds[i].name === "TOP") {
+        const promoAnchors = [...seg.matchAll(/<a\b[^>]*href="(https:\/\/p\.ynet\.co\.il\/[^"#?]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+        const promo = promoAnchors.find((m) => /data-tb-title/.test(m[2]));
+        if (promo) {
+          const [, link, inner] = promo;
+          const image = (promoAnchors.map((m) => m[2]).join(" ").match(/<img[^>]+src="(https:[^"]+)"/) || [])[1] || "";
+          const title = inner.match(/data-tb-title[^>]*>([\s\S]*?)<\/(?:span|h\d)>/);
+          const roof = inner.match(/class="[^"]*roofTitle[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+          const subtitle = inner.match(/class="slotSubTitle"[^>]*>([\s\S]*?)<\/[^>]+>/);
+          const clean = (value) => decode(value.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+          const headline = title ? clean(title[1]) : "";
+          const label = roof ? clean(roof[1]) : "";
+          byId.set(link, { link, title: headline ? (label ? `${label}: ${headline}` : headline) : label, img: image ? decode(image) : "", summary: subtitle ? clean(subtitle[1]) : "" });
+        }
+      }
       for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/(?:www\.|pplus\.)?ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
         const [, link, id, inner] = m;
         const e = byId.get(id) || { link, title: "", img: "", summary: "" };
