@@ -37,10 +37,13 @@ function parse(xml) {
     const link = tag(b, "link");
     const desc = tag(b, "description");
     const img = (desc.match(/<img[^>]+src=['"]([^'"]+)['"]/) || [])[1] || "";
-    const summary = decode(desc.replace(/<div>[\s\S]*?<\/div>/, "").replace(/<[^>]+>/g, "")).trim();
+    const enclosure = (b.match(/<enclosure[^>]+url=["']([^"']+)["']/i) || [])[1] || "";
+    const rawText = desc.replace(/<img\b[^>]*>/gi, " ").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]+>/g, " ");
+    const summary = decode(rawText).replace(/\s+/g, " ").trim();
     const date = new Date(tag(b, "pubDate"));
+    const image = img || enclosure;
     if (title && /^https:\/\/(www\.)?ynet\.co\.il\//.test(link))
-      items.push({ title, link, summary, img: /^https:\/\//.test(img) ? img : "", date });
+      items.push({ title, link, summary, img: /^https:\/\//.test(image) ? image : "", source: decode(tag(b, "author")) || "ynet", date });
   }
   return items;
 }
@@ -81,7 +84,7 @@ function page(section, items, built, flashItems = []) {
     if (it.summary) out += `<span class="s">${esc(it.summary)}</span>`;
     out += `<time datetime="${it.date.toISOString()}">${fmtTime.format(it.date)}</time></span></a></article>`;
     if (section.slug === "index" && idx === 1) {
-      out += `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/read?u=${encodeURIComponent(f.link)}&amp;ft=${encodeURIComponent(f.title)}&amp;fs=${encodeURIComponent(f.summary)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`;
+      out += `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/flash?ft=${encodeURIComponent(f.title)}&amp;fs=${encodeURIComponent(f.summary || f.title)}&amp;fi=${encodeURIComponent(f.img)}&amp;fd=${encodeURIComponent(fmtTime.format(f.date))}&amp;fo=${encodeURIComponent(f.source)}&amp;fu=${encodeURIComponent(f.link)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`;
     }
   }
   return `<!doctype html>
