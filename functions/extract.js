@@ -51,7 +51,9 @@ export function extract(html) {
           blocks.push({ t: "img", src: decode(img), cap: [alt, credit].filter(Boolean).map((x) => text(x).trim()).join(" ") });
         return;
       }
-      const body = chunk.slice(m[0].length).replace(/<figure[\s\S]*$/, "");
+      let body = chunk.slice(m[0].length).replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<figure[\s\S]*$/, "");
+      const close = m[1] === "div" ? body.indexOf("</div></div>") : body.indexOf("</" + m[1] + ">");
+      if (close >= 0) body = body.slice(0, close);
       const t = text(body.replace(/<\/div>\s*<div/g, "\n<div")).trim();
       if (!t || /^(פנייה לכתב|מצאתם טעות)/.test(t) || /^פנייה לכתב\/ת/.test(t)) return;
       if (/^h[1-6]$/.test(m[1]) || /pHeader|header/i.test(cls)) blocks.push({ t: "h", s: t });
