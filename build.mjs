@@ -89,7 +89,7 @@ function page(section, items, built, flashItems = []) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>${section.name} | ynet נקי</title>
-<link rel="stylesheet" href="/style.css"></head><body>
+<link rel="stylesheet" href="/style.css?v=compact"></head><body>
 <header><h1>ynet נקי</h1><nav>${nav}</nav></header>
 <main>${out}</main>
 <footer>עודכן ${esc(fmtDay.format(built))} ${fmtTime.format(built)}. כותרות ותקצירים מ-RSS של ynet; הכתבות נטענות מ-ynet בזמן קריאה.</footer>
