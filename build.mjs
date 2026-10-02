@@ -141,7 +141,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
     const k = dayKey(it.date);
     if (k !== lastDay) { out += `<h2>${esc(fmtDay.format(it.date))}</h2>`; lastDay = k; }
     out += `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">`;
-    if (it.img) out += `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="60" height="60">`;
+    if (it.img) out += `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
     out += `<span class="b"><span class="h">${esc(it.title)}</span>`;
     if (it.summary) out += `<span class="s">${esc(it.summary)}</span>`;
     out += `<time datetime="${it.date.toISOString()}">${fmtTime.format(it.date)}</time></span></a></article>`;
@@ -173,7 +173,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
       const heading = slug ? `<a href="${slug}.html">${esc(name)}</a><a class="all-category" href="${slug}.html">לכל הכותרות ‹</a>` : `<span>${esc(name)}</span>`;
       const rows = list.map((it, i) => {
         if (name === "חדשות" && i === 0) return `<article class="lead-story"><a href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}<span class="b"><span class="h">${esc(it.title)}</span>${it.summary ? `<span class="lead-summary">${esc(it.summary)}</span>` : ""}</span></a></article>`;
-        return `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="60" height="60">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`;
+        return `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`;
       });
       if (name === "חדשות" && flashItems.length) rows.splice(5, 0,
         `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map(flashRow).join("")}</section>`);
@@ -204,13 +204,13 @@ main{max-width:760px;margin:0 auto;padding:0 12px}
 h2{font-size:14px;color:var(--mut);margin:20px 0 4px;font-weight:600}
 article{border-bottom:1px solid var(--ln)}
 .t{display:flex;gap:9px;padding:8px 0;color:inherit;text-decoration:none;align-items:flex-start}
-.t img{flex:none;width:60px;height:60px;object-fit:contain;border-radius:4px;background:var(--ln)}
+.t img{flex:none;width:68px;height:auto;object-fit:contain;border-radius:4px;background:transparent}
 .b{display:flex;flex-direction:column;gap:2px;min-width:0}
 .h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
 .home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.lead-story>a{display:block;padding:8px 0;color:inherit;text-decoration:none}.lead-story>a>img{display:block;width:100%;height:min(56.25vw,33vh,280px);max-height:280px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:var(--ln)}.lead-story .b{display:flex;flex-direction:column;gap:4px;padding:7px 0}.lead-story .h{font-size:21px;line-height:1.3}.lead-summary{font-size:15px;line-height:1.5;color:var(--mut)}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:12px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;min-height:44px;cursor:pointer;list-style:none;font-weight:600;font-size:15px;line-height:1.35}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:6px 0 10px;font-size:15px;line-height:1.5}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
-@media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:56px;height:56px}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
+@media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:64px;height:auto}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
 await mkdir("dist", { recursive: true });
