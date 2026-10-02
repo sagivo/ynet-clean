@@ -204,7 +204,7 @@ main{max-width:760px;margin:0 auto;padding:0 12px}
 h2{font-size:14px;color:var(--mut);margin:20px 0 4px;font-weight:600}
 article{border-bottom:1px solid var(--ln)}
 .t{display:flex;gap:9px;padding:8px 0;color:inherit;text-decoration:none;align-items:flex-start}
-.t img{flex:none;width:60px;height:60px;object-fit:cover;border-radius:4px;background:var(--ln)}
+.t img{flex:none;width:60px;height:60px;object-fit:contain;border-radius:4px;background:var(--ln)}
 .b{display:flex;flex-direction:column;gap:2px;min-width:0}
 .h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}

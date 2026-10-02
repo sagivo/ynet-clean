@@ -38,8 +38,21 @@ export async function onRequestGet({ request }) {
   const time = p.get("fd") || "";
   const source = p.get("fo") || "ynet";
   const story = safeStory(p.get("fu") || "");
+  let fullText = text;
+  if (story) {
+    try {
+      const r = await fetch(story, { headers: { "user-agent": "Mozilla/5.0 (compatible; ynet-clean reader)", "accept-language": "he" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+      if (!r.ok || !safeStory(r.url)) throw new Error("untrusted or failed story response");
+      const html = await r.text();
+      const match = html.match(/"articleBody"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      const articleBody = match ? JSON.parse('"' + match[1] + '"') : "";
+      const metaDescription = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i)?.[1] || "";
+      const decode = (value) => value.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+      fullText = decode(articleBody || metaDescription || text).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || text;
+    } catch { fullText = text; }
+  }
   return new Response(`<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>${esc(title)} | מבזק | ynet נקי</title><link rel="stylesheet" href="/style.css?v=compact"><style>
 .flash-view{max-width:720px;margin:18px auto;padding:0 12px}.flash-card{background:color-mix(in srgb,var(--ln) 68%,var(--bg));border-radius:4px;padding:14px 16px;color:var(--fg)}.flash-head{display:flex;align-items:flex-start;gap:12px}.flash-title{font-size:22px;line-height:1.35;font-weight:750;margin:0;flex:1}.flash-thumb{width:92px;height:92px;object-fit:cover;border-radius:2px;flex:none;background:var(--ln)}.flash-copy{font-size:19px;line-height:1.55;margin:16px 0 12px;white-space:pre-line;overflow-wrap:anywhere}.flash-meta{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--mut);font-size:14px;border-top:1px solid var(--ln);padding-top:10px}.flash-source{font-size:15px}.flash-nav{display:flex;justify-content:space-between;align-items:center;margin:16px 2px;color:var(--mut);font-weight:650}.flash-nav a{color:inherit;text-decoration:none}.flash-source-link{color:var(--mut);font-size:14px;margin:12px 0 0}.flash-source-link a{color:inherit}@media(max-width:600px){.flash-view{margin:10px auto;padding:0 10px}.flash-card{padding:12px}.flash-title{font-size:20px;line-height:1.35}.flash-thumb{width:82px;height:82px}.flash-copy{font-size:18px;line-height:1.55;margin:14px 0 10px}}
-</style></head><body><header><h1><a href="/">ynet נקי</a></h1></header><main class="flash-view"><nav class="flash-nav"><a href="/">‹ לכל המבזקים</a><span>מבזקים</span></nav><article class="flash-card"><div class="flash-head"><h1 class="flash-title">${esc(title)}</h1>${img ? `<img class="flash-thumb" src="${esc(img)}" alt="" referrerpolicy="no-referrer">` : ""}</div><p class="flash-copy">${esc(text)}</p><div class="flash-meta"><span class="flash-source">(${esc(source)})</span><time>${esc(time)}</time></div>${story ? `<p class="flash-source-link"><a href="${esc(story)}" rel="noopener noreferrer">למבזק המקורי ב-ynet</a></p>` : ""}</article></main></body></html>`, { headers: { ...htmlHeaders, "cache-control": "public, max-age=300" } });
+</style></head><body><header><h1><a href="/">ynet נקי</a></h1></header><main class="flash-view"><nav class="flash-nav"><a href="/">‹ לכל המבזקים</a><span>מבזקים</span></nav><article class="flash-card"><div class="flash-head"><h1 class="flash-title">${esc(title)}</h1>${img ? `<img class="flash-thumb" src="${esc(img)}" alt="" referrerpolicy="no-referrer">` : ""}</div><p class="flash-copy">${esc(fullText)}</p><div class="flash-meta"><span class="flash-source">(${esc(source)})</span><time>${esc(time)}</time></div>${story ? `<p class="flash-source-link"><a href="${esc(story)}" rel="noopener noreferrer">למבזק המקורי ב-ynet</a></p>` : ""}</article></main></body></html>`, { headers: { ...htmlHeaders, "cache-control": "public, max-age=300" } });
 }
