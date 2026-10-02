@@ -66,12 +66,47 @@ async function fetchFeed(id) {
   throw new Error(`${id}: ${err}`);
 }
 
+
+// Parse ynet's real homepage into ordered per-block story lists.
+async function fetchHome() {
+  try {
+    const r = await fetch("https://www.ynet.co.il/home/0,7340,L-8,00.html", {
+      headers: { "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", "accept-language": "he" },
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const h = await r.text();
+    const marks = [...h.matchAll(/class="rightTitleText"[^>]*>([\s\S]*?)<\//g)].map((m) => ({ pos: m.index, name: decode(m[1].replace(/<[^>]+>/g, "")).trim() }));
+    const bounds = [{ pos: 0, name: "TOP" }, ...marks, { pos: h.length, name: "END" }];
+    const blocks = new Map();
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const seg = h.slice(bounds[i].pos, bounds[i + 1].pos);
+      const byId = new Map();
+      for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/www\.ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
+        const [, link, id, inner] = m;
+        const e = byId.get(id) || { link, title: "", img: "" };
+        const img = (inner.match(/<img[^>]+src="(https:[^"]+)"/) || [])[1];
+        if (img && !e.img) e.img = decode(img);
+        if (!e.title) {
+          const t = inner.match(/data-tb-title[^>]*>([\s\S]*?)<\/(?:span|h\d)>/);
+          const txt = decode((t ? t[1] : inner).replace(/<img\b[^>]*>/g, "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+          if (txt) e.title = txt;
+        }
+        byId.set(id, e);
+      }
+      const list = [...byId.values()].filter((e) => e.title);
+      if (list.length) blocks.set(bounds[i].name, [...(blocks.get(bounds[i].name) || []), ...list]);
+    }
+    return blocks;
+  } catch (e) { console.error("ynet homepage fetch failed", String(e)); return null; }
+}
+
 const tz = "Asia/Jerusalem";
 const fmtTime = new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit", minute: "2-digit" });
 const fmtDay = new Intl.DateTimeFormat("he-IL", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
 
-function page(section, items, built, flashItems = [], feeds = new Map()) {
+function page(section, items, built, flashItems = [], feeds = new Map(), home = null) {
   const nav = [{ slug: "index", name: "ראשי" }, ...SECTIONS].map(
     (s) => `<a href="${s.slug === "index" ? "./" : s.slug + ".html"}"${s.slug === section.slug ? ' aria-current="page"' : ""}>${s.name}</a>`
   ).join("");
@@ -91,13 +126,15 @@ function page(section, items, built, flashItems = [], feeds = new Map()) {
   if (section.slug === "index") {
     // Ynet mobile homepage, checked 2026-10-02. Only categories available
     // in this site's tabs are included; their order and block sizes match Ynet.
-    const homeSections = [
-      ["news", 10], ["economy", 9], ["sport", 5], ["culture", 5],
-      ["health", 6], ["digital", 5], ["law", 2],
-    ];
-    out = homeSections.map(([slug, count]) => {
+    const MAP = { news: ["TOP", "חדשות"], economy: ["כלכלה וצרכנות"], sport: ["ספורט"], culture: ["תרבות ובידור"], health: ["בריאות וכושר"], digital: ["דיגיטל"], law: ["פסק דין"] };
+    const FALLBACK = { news: 10, economy: 9, sport: 5, culture: 5, health: 6, digital: 5, law: 2 };
+    out = Object.keys(MAP).map((slug) => {
       const category = SECTIONS.find((s) => s.slug === slug);
-      const rows = (feeds.get(slug) || []).slice(0, count).map((it) =>
+      let list = [];
+      const seen = new Set();
+      for (const n of MAP[slug]) for (const it of (home?.get(n) || [])) if (!seen.has(it.link)) { seen.add(it.link); list.push(it); }
+      if (list.length < 2) list = (feeds.get(slug) || []).slice(0, FALLBACK[slug]);
+      const rows = list.map((it) =>
         `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`
       );
       if (slug === "news" && flashItems.length) rows.splice(2, 0,
@@ -141,6 +178,8 @@ footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-siz
 await mkdir("dist", { recursive: true });
 const built = new Date();
 const flashItems = (await fetchFeed("StoryRss1854")).sort((a, b) => b.date - a.date).slice(0, 4);
+const home = await fetchHome();
+console.log("ynet home blocks:", home ? [...home].map(([k, v]) => k + "=" + v.length).join(", ") : "none");
 const feeds = new Map();
 for (const s of SECTIONS) {
   try {
@@ -151,7 +190,7 @@ for (const s of SECTIONS) {
   } catch (e) { console.error("FAILED", s.name, String(e)); }
 }
 if (!feeds.size) { console.error("No feeds fetched"); process.exit(1); }
-await writeFile("dist/index.html", page({slug:"index",name:"ראשי"}, [], built, flashItems, feeds));
+await writeFile("dist/index.html", page({slug:"index",name:"ראשי"}, [], built, flashItems, feeds, home));
 await writeFile("dist/style.css", css);
 await copyFile("reader.css", "dist/reader.css");
 await writeFile("dist/_headers", "/*\n  Referrer-Policy: no-referrer\n  X-Content-Type-Options: nosniff\n  Cache-Control: public, max-age=300\n");
