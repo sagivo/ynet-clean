@@ -103,7 +103,7 @@ async function fetchHome() {
     for (let i = 0; i < bounds.length - 1; i++) {
       const seg = h.slice(bounds[i].pos, bounds[i + 1].pos);
       const byId = new Map();
-      for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/www\.ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
+      for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/(?:www\.|pplus\.)?ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
         const [, link, id, inner] = m;
         const e = byId.get(id) || { link, title: "", img: "", summary: "" };
         const img = (inner.match(/<img[^>]+src="(https:[^"]+)"/) || [])[1];
