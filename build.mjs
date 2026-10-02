@@ -66,6 +66,28 @@ async function fetchFeed(id) {
   throw new Error(`${id}: ${err}`);
 }
 
+// Flash RSS often has only a headline and image. Fetch each linked article at
+// build time and use its published articleBody as the expandable flash text.
+async function addFlashText(item) {
+  try {
+    const r = await fetch(item.link, {
+      headers: { "user-agent": "Mozilla/5.0 (compatible; ynet-clean RSS reader)" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const html = await r.text();
+    const match = html.match(/"articleBody"\s*:\s*"((?:\\.|[^"\\])*)"/);
+    const articleBody = match ? JSON.parse('"' + match[1] + '"') : "";
+    const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i)?.[1] || "";
+    const text = decode(articleBody || description.replace(/&quot;/g, '"'))
+      .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return text ? { ...item, summary: text } : item;
+  } catch (e) {
+    console.error("flash text fetch failed", item.link, String(e));
+    return item;
+  }
+}
+
 
 // Parse ynet's real homepage into ordered per-block story lists.
 async function fetchHome() {
@@ -151,7 +173,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
       const rows = list.map((it) =>
         `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`
       );
-      if (name === "חדשות" && flashItems.length) rows.splice(2, 0,
+      if (name === "חדשות" && flashItems.length) rows.splice(5, 0,
         `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map(flashRow).join("")}</section>`);
       return `<section class="home-category" data-category="${slug || "x"}"><h2 class="category-heading">${heading}</h2>${rows.join("") || `<p class="feed-unavailable">הכותרות אינן זמינות כרגע</p>`}</section>`;
     }).join("");
@@ -185,13 +207,13 @@ article{border-bottom:1px solid var(--ln)}
 .h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
-.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:11px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;cursor:pointer;list-style:none;font-weight:500;font-size:12px;line-height:1.2}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:4px 0 8px;font-size:14px;line-height:1.4}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
+.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:12px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;min-height:44px;cursor:pointer;list-style:none;font-weight:600;font-size:15px;line-height:1.35}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:6px 0 10px;font-size:15px;line-height:1.5}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
 @media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:48px;height:48px}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
 await mkdir("dist", { recursive: true });
 const built = new Date();
-const flashItems = (await fetchFeed("StoryRss1854")).sort((a, b) => b.date - a.date).slice(0, 4);
+const flashItems = await Promise.all((await fetchFeed("StoryRss1854")).sort((a, b) => b.date - a.date).slice(0, 4).map(addFlashText));
 const home = await fetchHome();
 console.log("ynet home blocks:", home ? [...home].map(([k, v]) => k + "=" + v.length).join(", ") : "none");
 const feeds = new Map();
