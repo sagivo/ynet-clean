@@ -88,7 +88,6 @@ async function addFlashText(item) {
   }
 }
 
-
 // Parse ynet's real homepage into ordered per-block story lists.
 async function fetchHome() {
   try {
@@ -106,9 +105,12 @@ async function fetchHome() {
       const byId = new Map();
       for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/www\.ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
         const [, link, id, inner] = m;
-        const e = byId.get(id) || { link, title: "", img: "" };
+        const e = byId.get(id) || { link, title: "", img: "", summary: "" };
         const img = (inner.match(/<img[^>]+src="(https:[^"]+)"/) || [])[1];
         if (img && !e.img) e.img = decode(img);
+        const sub = inner.match(/class="slotSubTitle"[^>]*>([\s\S]*?)<\/[^>]+>/);
+        const summary = sub ? decode(sub[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() : "";
+        if (summary && !e.summary) e.summary = summary;
         if (!e.title) {
           const t = inner.match(/data-tb-title[^>]*>([\s\S]*?)<\/(?:span|h\d)>/);
           const txt = decode((t ? t[1] : inner).replace(/<img\b[^>]*>/g, "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -127,7 +129,6 @@ const tz = "Asia/Jerusalem";
 const fmtTime = new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit", minute: "2-digit" });
 const fmtDay = new Intl.DateTimeFormat("he-IL", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
-
 
 const flashRow = (f) => `<details class="fl"><summary><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></summary><div class="fb">${f.img ? `<img src="${esc(f.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}${f.summary && f.summary !== f.title ? `<p>${esc(f.summary)}</p>` : ""}<a href="/read?u=${encodeURIComponent(f.link)}">לכתבה המלאה ‹</a></div></details>`;
 
@@ -170,9 +171,10 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
       const seen = new Set();
       const list = list0.filter((it) => !seen.has(it.link) && seen.add(it.link));
       const heading = slug ? `<a href="${slug}.html">${esc(name)}</a><a class="all-category" href="${slug}.html">לכל הכותרות ‹</a>` : `<span>${esc(name)}</span>`;
-      const rows = list.map((it) =>
-        `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`
-      );
+      const rows = list.map((it, i) => {
+        if (name === "חדשות" && i === 0) return `<article class="lead-story"><a href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}<span class="b"><span class="h">${esc(it.title)}</span>${it.summary ? `<span class="lead-summary">${esc(it.summary)}</span>` : ""}</span></a></article>`;
+        return `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`;
+      });
       if (name === "חדשות" && flashItems.length) rows.splice(5, 0,
         `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map(flashRow).join("")}</section>`);
       return `<section class="home-category" data-category="${slug || "x"}"><h2 class="category-heading">${heading}</h2>${rows.join("") || `<p class="feed-unavailable">הכותרות אינן זמינות כרגע</p>`}</section>`;
@@ -207,7 +209,7 @@ article{border-bottom:1px solid var(--ln)}
 .h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
-.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:12px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;min-height:44px;cursor:pointer;list-style:none;font-weight:600;font-size:15px;line-height:1.35}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:6px 0 10px;font-size:15px;line-height:1.5}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
+.home-category{margin:12px 0 18px}.category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ac);padding-bottom:5px;margin:0;font-size:17px;color:var(--fg)}.category-heading a{color:inherit;text-decoration:none}.category-heading .all-category{font-size:12px;color:var(--mut);font-weight:400}.home-category .t{align-items:center}.lead-story>a{display:block;padding:8px 0;color:inherit;text-decoration:none}.lead-story>a>img{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:6px;background:var(--ln)}.lead-story .b{display:flex;flex-direction:column;gap:4px;padding:7px 0}.lead-story .h{font-size:21px;line-height:1.3}.lead-summary{font-size:15px;line-height:1.5;color:var(--mut)}.feed-unavailable{color:var(--mut);font-size:14px}.headlines{margin:8px 0 10px;padding:7px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.headlines h2{margin:0 0 3px;color:var(--ac);font-size:13px}.headlines a{display:block;padding:4px 0;border-top:1px solid var(--ln);font-size:14px;line-height:1.3;font-weight:650;color:inherit;text-decoration:none}.news-heading{margin-top:8px!important}.flashes{margin:6px 0 8px;padding:6px 9px;background:color-mix(in srgb,var(--ln) 35%,var(--bg));border-radius:6px}.flashes h2{margin:0 0 2px;color:var(--ac);font-size:12px}.flashes a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:500;font-size:12px;line-height:1.2}.flashes a span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis}.flashes time{white-space:nowrap;font-size:12px}.flashes details{border-top:1px solid var(--ln)}.flashes summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;min-height:44px;cursor:pointer;list-style:none;font-weight:600;font-size:15px;line-height:1.35}.flashes summary::-webkit-details-marker{display:none}.flashes summary span{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}.flashes details[open] summary span{-webkit-line-clamp:unset;font-weight:700}.flashes .fb{padding:6px 0 10px;font-size:15px;line-height:1.5}.flashes .fb img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:6px}.flashes .fb p{margin:0 0 6px}.flashes .fb a{display:inline;border:0;padding:0;font-size:13px;color:var(--ac)}
 @media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:48px;height:48px}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
