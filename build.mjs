@@ -147,8 +147,8 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>${section.name} | ynet נקי</title>
-<link rel="stylesheet" href="/style.css?v=all-categories"></head><body>
-<header><h1>ynet נקי</h1><nav>${nav}</nav></header>
+<link rel="stylesheet" href="/style.css?v=tagline"></head><body>
+<header><h1>ynet נקי<span class="tag">בלי ספאם, רק תוכן</span></h1><nav>${nav}</nav></header>
 <main>${out}</main>
 <footer>עודכן ${esc(fmtDay.format(built))} ${fmtTime.format(built)}. כותרות ותקצירים מ-RSS של ynet; הכתבות נטענות מ-ynet בזמן קריאה.</footer>
 </body></html>`;
@@ -158,7 +158,7 @@ const css = `:root{color-scheme:light dark;--bg:#fff;--fg:#111;--mut:#666;--ln:#
 @media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--ln:#2a2a2a;--ac:#ff6b6b}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
 header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--ln);padding:8px 12px}
-h1{margin:0 0 4px;font-size:20px;color:var(--ac)}
+h1{margin:0 0 4px;font-size:20px;color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}h1 .tag{margin-inline-start:8px;font-size:12px;font-weight:400;color:var(--mut)}
 nav{display:flex;gap:14px;overflow-x:auto;white-space:nowrap}
 nav a{color:var(--mut);text-decoration:none;padding:4px 0;font-size:16px}
 nav a[aria-current]{color:var(--fg);font-weight:700;border-bottom:2px solid var(--ac)}
