@@ -5,6 +5,32 @@ const safeStory = (u) => /^https:\/\/(?:www\.)?ynet\.co\.il\/[A-Za-z0-9_\-\/.%]+
 
 export async function onRequestGet({ request }) {
   const p = new URL(request.url).searchParams;
+  if (!p.has("ft")) {
+    let rows = "";
+    let error = "";
+    try {
+      const r = await fetch("https://www.ynet.co.il/Integration/StoryRss1854.xml", { headers: { "user-agent": "Mozilla/5.0 (compatible; ynet-clean RSS reader)", "accept-language": "he" }, signal: AbortSignal.timeout(12000) });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const xml = await r.text();
+      const field = (b, name) => {
+        const m = b.match(new RegExp(`<${name}[^>]*>\\s*(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))\\s*</${name}>`, "i"));
+        return (m ? (m[1] ?? m[2] ?? "") : "").trim();
+      };
+      const decode = (v) => v.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+      const fmt = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
+      for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
+        const b = m[1];
+        const title = decode(field(b, "title"));
+        const link = field(b, "link");
+        const desc = decode(field(b, "description").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+        const date = new Date(field(b, "pubDate"));
+        if (!title || !/^https:\/\/(www\.)?ynet\.co\.il\//.test(link)) continue;
+        rows += `<article><a href="${esc(link)}">${esc(title)}</a>${desc ? `<p>${esc(desc)}</p>` : ""}<time>${Number.isNaN(+date) ? "" : fmt.format(date)}</time></article>`;
+      }
+      if (!rows) error = "אין מבזקים זמינים כרגע.";
+    } catch { error = "לא ניתן לטעון מבזקים כרגע. נסו שוב בעוד כמה דקות."; }
+    return new Response(`<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>מבזקים | ynet נקי</title><link rel="stylesheet" href="/style.css?v=flashes-20261002"><style>.flash-list{max-width:720px;margin:12px auto;padding:0 12px}.flash-list h2{font-size:20px;color:var(--ac);margin:8px 0 14px}.flash-list article{padding:12px 0;border-bottom:1px solid var(--ln)}.flash-list article>a{font-weight:700;color:inherit;text-decoration:none;font-size:17px}.flash-list p{margin:5px 0;color:var(--mut);font-size:15px}.flash-list time{font-size:13px;color:var(--mut)}</style></head><body><header><h1><a href="/">ynet נקי</a><span class="tag">בלי ספאם, רק תוכן</span></h1></header><main class="flash-list"><nav><a href="/">‹ חזרה לראשי</a></nav><h2>מבזקים</h2>${rows || `<p>${esc(error)}</p>`}</main></body></html>`, { headers: { ...htmlHeaders, "cache-control": "public, max-age=180" } });
+  }
   const title = p.get("ft") || "מבזק";
   const text = p.get("fs") || title;
   const img = safeImage(p.get("fi") || "");
