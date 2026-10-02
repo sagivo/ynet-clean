@@ -17,6 +17,13 @@ export async function onRequestGet({ request }) {
   if (!r || !r.ok) return new Response(`<meta charset="utf-8"><p dir="rtl">לא הצלחנו לטעון את הכתבה. <a href="${u}">פתח באתר המקורי</a></p>`, { status: 502, headers: htmlHeaders });
   if (!OK.test(r.url)) return new Response("redirect blocked", { status: 400 });
   const a = extract(await r.text());
+  const params = new URL(request.url).searchParams;
+  const flashTitle = params.get("ft") || "";
+  const flashText = params.get("fs") || "";
+  if (!a.blocks.some((b) => b.t === "p") && flashTitle) {
+    a.title = flashTitle;
+    a.blocks.unshift({ t: "p", s: flashText || flashTitle });
+  }
   const res = new Response(render(a, u), { headers: { ...htmlHeaders, "cache-control": "public, max-age=300" } });
   await cache.put(key, res.clone());
   return res;
