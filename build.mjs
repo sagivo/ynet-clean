@@ -76,7 +76,7 @@ function page(section, items, built, flashItems = []) {
     const k = dayKey(it.date);
     if (k !== lastDay) { out += `<h2>${esc(fmtDay.format(it.date))}</h2>`; lastDay = k; }
     out += `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">`;
-    if (it.img) out += `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="100" height="56">`;
+    if (it.img) out += `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">`;
     out += `<span class="b"><span class="h">${esc(it.title)}</span>`;
     if (it.summary) out += `<span class="s">${esc(it.summary)}</span>`;
     out += `<time datetime="${it.date.toISOString()}">${fmtTime.format(it.date)}</time></span></a></article>`;
@@ -107,13 +107,14 @@ nav a[aria-current]{color:var(--fg);font-weight:700;border-bottom:2px solid var(
 main{max-width:760px;margin:0 auto;padding:0 12px}
 h2{font-size:14px;color:var(--mut);margin:20px 0 4px;font-weight:600}
 article{border-bottom:1px solid var(--ln)}
-.t{display:flex;gap:12px;padding:12px 0;color:inherit;text-decoration:none}
-.t img{flex:none;width:100px;height:56px;object-fit:cover;border-radius:4px;background:var(--ln)}
-.b{display:flex;flex-direction:column;gap:3px;min-width:0}
-.h{font-weight:700;font-size:18px}.s{color:var(--mut);font-size:15px}
+.t{display:flex;gap:9px;padding:8px 0;color:inherit;text-decoration:none;align-items:flex-start}
+.t img{flex:none;width:52px;height:52px;object-fit:cover;border-radius:4px;background:var(--ln)}
+.b{display:flex;flex-direction:column;gap:2px;min-width:0}
+.h{font-weight:700;font-size:17px;line-height:1.35}.s{color:var(--mut);font-size:14px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 time{color:var(--mut);font-size:13px}
 .t:visited .h{color:var(--mut)}
 .flashes{margin:8px 0 12px;padding:10px 12px;background:color-mix(in srgb,var(--ln) 45%,var(--bg));border-radius:8px}.flashes h2{margin:0 0 4px;color:var(--ac)}.flashes a{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--ln);color:inherit;text-decoration:none;font-weight:600}.flashes time{white-space:nowrap}
+@media(max-width:600px){.s{display:none}.t{gap:8px;padding:7px 0}.t img{width:48px;height:48px}.h{font-size:16px;line-height:1.3}h2{margin:13px 0 3px}}
 footer{max-width:760px;margin:24px auto;padding:0 12px;color:var(--mut);font-size:13px}`;
 
 await mkdir("dist", { recursive: true });
