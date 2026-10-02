@@ -1,5 +1,5 @@
 .reader{max-width:680px}
-.reader .title{font-size:26px;line-height:1.25;margin:18px 0 8px;color:var(--fg)}
+.reader .title{font-size:26px;line-height:1.25;margin:18px 0 8px;color:var(--fg);white-space:normal;overflow:visible;text-overflow:clip;display:block;-webkit-line-clamp:unset;max-height:none}
 .reader .sub{font-size:19px;color:var(--mut);margin:0 0 8px;font-weight:600}
 .reader .meta{font-size:13px;color:var(--mut);margin-bottom:14px}
 .reader p{font-size:19px;line-height:1.7;margin:0 0 16px}
