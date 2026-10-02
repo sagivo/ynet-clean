@@ -1,4 +1,4 @@
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;");
 const htmlHeaders = { "content-type": "text/html; charset=utf-8", "referrer-policy": "no-referrer" };
 const safeImage = (u) => /^https:\/\/(?:[a-z0-9-]+\.)*yit\.co\.il\//i.test(u) ? u : "";
 const safeStory = (u) => /^https:\/\/(?:www\.)?ynet\.co\.il\/[A-Za-z0-9_\-\/.%]+$/.test(u) ? u : "";
@@ -25,7 +25,8 @@ export async function onRequestGet({ request }) {
         const desc = decode(field(b, "description").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
         const date = new Date(field(b, "pubDate"));
         if (!title || !/^https:\/\/(www\.)?ynet\.co\.il\//.test(link)) continue;
-        rows += `<article><a href="${esc(link)}">${esc(title)}</a>${desc ? `<p>${esc(desc)}</p>` : ""}<time>${Number.isNaN(+date) ? "" : fmt.format(date)}</time></article>`;
+        const params = new URLSearchParams({ ft: title, fs: desc || title, fd: Number.isNaN(+date) ? "" : fmt.format(date), fo: "ynet", fu: link });
+        rows += `<article><a href="/flash?${params}">${esc(title)}</a>${desc ? `<p>${esc(desc)}</p>` : ""}<time>${Number.isNaN(+date) ? "" : fmt.format(date)}</time></article>`;
       }
       if (!rows) error = "אין מבזקים זמינים כרגע.";
     } catch { error = "לא ניתן לטעון מבזקים כרגע. נסו שוב בעוד כמה דקות."; }
