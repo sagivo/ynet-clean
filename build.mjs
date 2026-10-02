@@ -126,20 +126,31 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
   if (section.slug === "index") {
     // Ynet mobile homepage, checked 2026-10-02. Only categories available
     // in this site's tabs are included; their order and block sizes match Ynet.
-    const MAP = { news: ["TOP", "חדשות"], economy: ["כלכלה וצרכנות"], sport: ["ספורט"], culture: ["תרבות ובידור"], health: ["בריאות וכושר"], digital: ["דיגיטל"], law: ["פסק דין"] };
-    const FALLBACK = { news: 10, economy: 9, sport: 5, culture: 5, health: 6, digital: 5, law: 2 };
-    out = Object.keys(MAP).map((slug) => {
-      const category = SECTIONS.find((s) => s.slug === slug);
-      let list = [];
+    const TABS = { "חדשות": "news", "כלכלה וצרכנות": "economy", "ספורט": "sport", "תרבות ובידור": "culture", "בריאות וכושר": "health", "דיגיטל": "digital", "פסק דין": "law" };
+    const FALLBACK = ["news", "economy", "sport", "culture", "health", "digital", "law"];
+    const blocks = [];
+    if (home && home.size) {
+      for (const [name, items] of home) {
+        const label = name === "TOP" ? "חדשות" : name;
+        const last = blocks[blocks.length - 1];
+        if (name === "TOP") { blocks.push({ name: label, items: [...items] }); continue; }
+        if (label === "חדשות" && last && last.name === "חדשות") { last.items.push(...items); continue; }
+        blocks.push({ name: label, items: [...items] });
+      }
+    } else {
+      for (const slug of FALLBACK) blocks.push({ name: SECTIONS.find((x) => x.slug === slug).name, items: (feeds.get(slug) || []).slice(0, 8) });
+    }
+    out = blocks.map(({ name, items: list0 }) => {
+      const slug = TABS[name] || "";
       const seen = new Set();
-      for (const n of MAP[slug]) for (const it of (home?.get(n) || [])) if (!seen.has(it.link)) { seen.add(it.link); list.push(it); }
-      if (list.length < 2) list = (feeds.get(slug) || []).slice(0, FALLBACK[slug]);
+      const list = list0.filter((it) => !seen.has(it.link) && seen.add(it.link));
+      const heading = slug ? `<a href="${slug}.html">${esc(name)}</a><a class="all-category" href="${slug}.html">לכל הכותרות ‹</a>` : `<span>${esc(name)}</span>`;
       const rows = list.map((it) =>
         `<article><a class="t" href="/read?u=${encodeURIComponent(it.link)}">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="52" height="52">` : ""}<span class="b"><span class="h">${esc(it.title)}</span></span></a></article>`
       );
-      if (slug === "news" && flashItems.length) rows.splice(2, 0,
+      if (name === "חדשות" && flashItems.length) rows.splice(2, 0,
         `<section class="flashes"><h2>מבזקים אחרונים</h2>${flashItems.map((f) => `<a href="/flash?ft=${encodeURIComponent(f.title)}&amp;fs=${encodeURIComponent(f.summary || f.title)}&amp;fi=${encodeURIComponent(f.img)}&amp;fd=${encodeURIComponent(fmtTime.format(f.date))}&amp;fo=${encodeURIComponent(f.source)}&amp;fu=${encodeURIComponent(f.link)}"><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></a>`).join("")}</section>`);
-      return `<section class="home-category" data-category="${slug}"><h2 class="category-heading"><a href="${slug}.html">${category.name}</a><a class="all-category" href="${slug}.html">לכל הכותרות ‹</a></h2>${rows.join("") || `<p class="feed-unavailable">הכותרות אינן זמינות כרגע</p>`}</section>`;
+      return `<section class="home-category" data-category="${slug || "x"}"><h2 class="category-heading">${heading}</h2>${rows.join("") || `<p class="feed-unavailable">הכותרות אינן זמינות כרגע</p>`}</section>`;
     }).join("");
   }
   return `<!doctype html>
