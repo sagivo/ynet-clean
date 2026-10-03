@@ -91,7 +91,8 @@ async function addFlashText(item) {
 // Parse ynet's real homepage into ordered per-block story lists.
 async function fetchHome() {
   try {
-    const r = await fetch("https://www.ynet.co.il/home/0,7340,L-8,00.html", {
+    const cacheBust = `ynet-clean-build=${Date.now()}`;
+    const r = await fetch(`https://www.ynet.co.il/home/0,7340,L-8,00.html?${cacheBust}`, {
       headers: { "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", "accept-language": "he" },
       signal: AbortSignal.timeout(25000),
     });
@@ -103,6 +104,20 @@ async function fetchHome() {
     for (let i = 0; i < bounds.length - 1; i++) {
       const seg = h.slice(bounds[i].pos, bounds[i + 1].pos);
       const byId = new Map();
+      // Ynet's primary mobile hero is the only `h1[data-tb-title]` in TOP;
+      // its gallery and BottomList anchors occur as separate links.
+      if (bounds[i].name === "TOP") {
+        const hero = seg.match(/<div[^>]*class="[^"]*top-story-multi[^"]*"[\s\S]*?<h1[^>]*data-tb-title[^>]*>([\s\S]*?)<\/h1>/i);
+        if (hero) {
+          const start = hero.index;
+          const region = seg.slice(start, seg.indexOf("</div></div></div></div></span></div>", start) > -1 ? seg.indexOf("</div></div></div></div></span></div>", start) : start + 20000);
+          const link = (region.match(/href="(https:\/\/(?:www\.|pplus\.)?ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))(?:#[^"]*)?"/) || []);
+          const image = (region.match(/<img[^>]+src="(https:[^"]+)"/) || [])[1] || "";
+          const subtitle = (region.match(/class="slotSubTitle"[^>]*>([\s\S]*?)<\/[^>]+>/) || [])[1] || "";
+          const title = decode(hero[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+          if (link[1] && link[2] && title) byId.set(link[2], { link: link[1], title, img: image ? decode(image) : "", summary: decode(subtitle.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() });
+        }
+      }
       for (const m of seg.matchAll(/<a\b[^>]*href="(https:\/\/(?:www\.|pplus\.)?ynet\.co\.il\/[^"#?]*?\/article\/([A-Za-z0-9]+))[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) {
         const [, link, id, inner] = m;
         const e = byId.get(id) || { link, title: "", img: "", summary: "" };
