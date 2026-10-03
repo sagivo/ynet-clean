@@ -52,6 +52,28 @@ async function fetchHome() {
   if (!out.length) throw new Error("no homepage stories parsed");
   return out;
 }
+// RSS flashes may have an empty description. Hydrate the latest four from
+// their published full article body before replacing the static accordions.
+async function addFlashText(item) {
+  let summary = item.summary;
+  try {
+    const r = await fetch(item.link, { headers: { "user-agent": "Mozilla/5.0 (compatible; ynet-clean RSS reader)", "accept-language": "he" }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+    if (!r.ok || !safeStory(r.url || item.link)) throw new Error("flash detail unavailable");
+    const html = await r.text();
+    const match = html.match(/"articleBody"\s*:\s*"((?:\\.|[^"\\])*)"/);
+    const articleBody = match ? JSON.parse('"' + match[1] + '"') : "";
+    if (articleBody) summary = text(articleBody);
+    if (!summary || summary === item.title) {
+      const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i)?.[1] || "";
+      if (description) summary = text(description);
+    }
+  } catch {
+    // Retain a useful RSS description if the detail source is unavailable.
+  }
+  // Never replace working static flashes with title-only live cards.
+  if (!summary || summary === item.title) throw new Error("flash full text unavailable");
+  return { ...item, summary };
+}
 async function fetchFlashes() {
   const r = await fetch(BASE + "StoryRss1854.xml", { headers: { "user-agent": "Mozilla/5.0 (compatible; ynet-clean RSS reader)", "accept-language": "he" }, signal: AbortSignal.timeout(12000) });
   if (!r.ok) throw new Error(`flash RSS HTTP ${r.status}`);
@@ -66,11 +88,11 @@ async function fetchFlashes() {
     items.push({ title, link, summary, img: image && safeImage(image[1]) ? image[1] : "", date: Number.isNaN(+date) ? "" : date.toISOString() });
   }
   if (!items.length) throw new Error("no flash RSS items parsed");
-  return items.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0)).slice(0, 4);
+  return Promise.all(items.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0)).slice(0, 4).map(addFlashText));
 }
 export async function onRequestGet() {
   const cache = caches.default;
-  const key = new Request("https://home-data.cache/v1/live-home");
+  const key = new Request("https://home-data.cache/v2/full-flashes");
   const hit = await cache.match(key);
   if (hit) return hit;
   try {
