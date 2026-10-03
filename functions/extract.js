@@ -80,7 +80,7 @@ export function render(a, url) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex">
 <title>${esc(a.title)} | ynet נקי</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/reader.css?v=font-18px-20261003"></head><body>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/reader.css?v=font-18px-20261003-adjust"></head><body>
 <header><h1><a href="/">ynet נקי</a></h1></header>
 <main class="reader"><article>
 <h1 class="title">${esc(a.title)}</h1>
