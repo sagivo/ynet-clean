@@ -147,6 +147,21 @@ const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(
 
 const flashRow = (f) => `<details class="fl"><summary><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></summary><div class="fb">${f.img ? `<img src="${esc(f.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}${f.summary && f.summary !== f.title ? `<p>${esc(f.summary)}</p>` : ""}<a href="/read?u=${encodeURIComponent(f.link)}">לכתבה המלאה ‹</a></div></details>`;
 
+const liveHomeScript = String.raw`<script>
+(()=>{
+  const labels={"חדשות":"news","כלכלה וצרכנות":"economy","ספורט":"sport","תרבות ובידור":"culture","בריאות וכושר":"health","דיגיטל":"digital","פסק דין":"law"};
+  const readUrl=(u)=>"/read?u="+encodeURIComponent(u);
+  const validLink=(u)=>{try{const x=new URL(u);return x.protocol==="https:"&&(x.hostname==="ynet.co.il"||x.hostname==="www.ynet.co.il")&&/\/article\/[A-Za-z0-9]+$/.test(x.pathname)}catch{return false}};
+  const txt=(tag,value,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=value||"";return e};
+  const image=(url,cls)=>{try{const u=new URL(url);if(u.protocol!=="https:"||!/(^|\.)yit\.co\.il$/i.test(u.hostname))return null;const e=document.createElement("img");e.src=u.href;e.alt="";e.loading="lazy";e.decoding="async";e.referrerPolicy="no-referrer";if(cls)e.className=cls;return e}catch{return null}};
+  const flashCard=(f)=>{const d=document.createElement("details");d.className="fl";const s=document.createElement("summary");s.append(txt("span",f.title));const t=txt("time","");const date=new Date(f.date);if(!Number.isNaN(+date))t.textContent=new Intl.DateTimeFormat("he-IL",{timeZone:"Asia/Jerusalem",hour:"2-digit",minute:"2-digit"}).format(date);s.append(t);d.append(s);const body=document.createElement("div");body.className="fb";const im=image(f.img);if(im)body.append(im);if(f.summary&&f.summary!==f.title)body.append(txt("p",f.summary));const a=txt("a","לכתבה המלאה ‹");a.href=readUrl(f.link);body.append(a);d.append(body);return d};
+  const story=(it,lead)=>{const art=document.createElement("article");if(lead)art.className="lead-story";const a=document.createElement("a");a.href=readUrl(it.link);if(lead){const im=image(it.img);if(im) a.append(im);const b=document.createElement("span");b.className="b";b.append(txt("span",it.title,"h"));if(it.summary)b.append(txt("span",it.summary,"lead-summary"));a.append(b)}else{a.className="t";const im=image(it.img);if(im) a.append(im);const b=document.createElement("span");b.className="b";b.append(txt("span",it.title,"h"));a.append(b)}art.append(a);return art};
+  const apply=(data)=>{if(!Array.isArray(data.categories)||!data.categories.length||!Array.isArray(data.flashes))return;const blocks=[];for(const b of data.categories){const name=b.name==="TOP"?"חדשות":b.name;const last=blocks.at(-1);if(b.name==="TOP"){blocks.push({name,items:[...b.items]});continue}if(name==="חדשות"&&last?.name==="חדשות"){last.items.push(...b.items);continue}blocks.push({name,items:[...b.items]})}if(!blocks.length)return;const root=document.querySelector("main");if(!root)return;root.replaceChildren();for(const block of blocks){const slug=labels[block.name]||"";const sec=document.createElement("section");sec.className="home-category";sec.dataset.category=slug||"x";const head=document.createElement("h2");head.className="category-heading";if(slug){const a=txt("a",block.name);a.href=slug+".html";head.append(a);const all=txt("a","לכל הכותרות ‹","all-category");all.href=slug+".html";head.append(all)}else head.append(txt("span",block.name));sec.append(head);const items=block.items.filter((it,i,arr)=>arr.findIndex(x=>x.link===it.link)===i);items.forEach((it,i)=>{if(!it.title||!validLink(it.link))return;sec.append(story(it,block.name==="חדשות"&&i===0));if(block.name==="חדשות"&&i===4&&data.flashes.length){const box=document.createElement("section");box.className="flashes";box.append(txt("h2","מבזקים אחרונים"));data.flashes.forEach(f=>{if(f.title&&validLink(f.link))box.append(flashCard(f))});sec.append(box)}});if(sec.children.length>1)root.append(sec)}if(!root.children.length)return;const foot=document.querySelector("footer");if(foot){const d=new Date(data.fetchedAt);const when=Number.isNaN(+d)?"":new Intl.DateTimeFormat("he-IL",{timeZone:"Asia/Jerusalem",weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}).format(d);if(when)foot.textContent="עודכן בנתוני ynet בשעה "+when+". הכתבות נטענות מ-ynet בזמן קריאה."}};
+  fetch("/home-data",{headers:{accept:"application/json"},cache:"no-store"}).then(r=>{if(!r.ok)throw Error("live data unavailable");return r.json()}).then(apply).catch(()=>{});
+})();
+</script>`;
+
+
 function page(section, items, built, flashItems = [], feeds = new Map(), home = null) {
   const nav = [{ slug: "index", name: "ראשי" }, ...SECTIONS].map(
     (s) => `<a href="${s.slug === "index" ? "./" : s.slug + ".html"}"${s.slug === section.slug ? ' aria-current="page"' : ""}>${s.name}</a>`
@@ -204,7 +219,7 @@ function page(section, items, built, flashItems = [], feeds = new Map(), home = 
 <header><h1>ynet נקי<span class="tag">בלי ספאם, רק תוכן</span></h1><nav>${nav}</nav></header>
 <main>${out}</main>
 <footer>עודכן ${esc(fmtDay.format(built))} ${fmtTime.format(built)}. כותרות ותקצירים מ-RSS של ynet; הכתבות נטענות מ-ynet בזמן קריאה.</footer>
-</body></html>`;
+${section.slug === "index" ? liveHomeScript : ""}</body></html>`;
 }
 
 const css = `:root{color-scheme:light dark;--bg:#fff;--fg:#111;--mut:#666;--ln:#e5e5e5;--ac:#c00}
