@@ -7,7 +7,7 @@ export async function onRequestGet({ request }) {
   const u = new URL(request.url).searchParams.get("u") || "";
   if (!OK.test(u)) return new Response("כתובת לא תקינה", { status: 400, headers: htmlHeaders });
   const cache = caches.default;
-  const key = new Request("https://reader.cache/v2/" + encodeURIComponent(u));
+  const key = new Request("https://reader.cache/v3/" + encodeURIComponent(u));
   const hit = await cache.match(key);
   if (hit) return hit;
   let r;

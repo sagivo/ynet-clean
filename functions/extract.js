@@ -9,6 +9,7 @@ function decode(s) {
 }
 const text = (h) => decode(h.replace(/<br\s*\/?>/g, "\n").replace(/<[^>]+>/g, ""));
 const safeImg = (u) => (/^https:\/\/[a-z0-9.-]*yit\.co\.il\//i.test(u) ? u : "");
+const safeMedia = (u) => (/^https:\/\/(?:vod-progressive\.ynethd\.com|vod-hls\.ynethd\.com)\//i.test(u) ? u : "");
 
 function inlineHtml(h) {
   // keep bold spans and links' text only
@@ -44,6 +45,16 @@ export function extract(html) {
       const chunk = seg.slice(m.index, i + 1 < starts.length ? starts[i + 1].index : m.index + 20000);
       const cls = (m[0].match(/class="([^"]*)"/) || [])[1] || "";
       if (m[1] === "figure") {
+        const videoWidget = chunk.match(/window\.YITSiteWidgets\.push\(\[[^,]+,'SiteVideoMedia',(\{[\s\S]*?\})\]\);/);
+        if (videoWidget) {
+          try {
+            const config = JSON.parse(videoWidget[1]).data || {};
+            const src = safeMedia(config.downGradeUrl);
+            const poster = safeImg(config.poster || "");
+            if (src) blocks.push({ t: "video", src, poster, title: config.title || "", cap: config.credit || "" });
+          } catch {}
+          return;
+        }
         const img = (chunk.match(/<img[^>]+src="([^"]+)"/) || [])[1];
         const alt = (chunk.match(/class="ImageCaption"[^>]*>([\s\S]*?)<\/div>/) || [])[1];
         const credit = (chunk.match(/class="ImageCredit"[^>]*>([\s\S]*?)<\/div>/) || [])[1];
@@ -71,6 +82,7 @@ export function render(a, url) {
     if (b.t === "p") body += `<p>${esc(b.s).replace(/\n/g, "<br>")}</p>`;
     else if (b.t === "h") body += `<h2>${esc(b.s)}</h2>`;
     else if (b.t === "img") body += `<figure><img src="${esc(b.src)}" alt="" loading="lazy" referrerpolicy="no-referrer">${b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
+    else if (b.t === "video") body += `<figure class="reader-video"><video controls playsinline preload="metadata"${b.poster ? ` poster="${esc(b.poster)}"` : ""} aria-label="${esc(b.title || "וידאו")}"><source src="${esc(b.src)}" type="video/mp4">הדפדפן לא תומך בהפעלת וידאו.</video>${b.title ? `<figcaption>${esc(b.title)}${b.cap && b.cap.trim() ? ` · ${esc(b.cap.trim())}` : ""}</figcaption>` : ""}</figure>`;
   }
   const hasText = a.blocks.some((b) => b.t === "p");
   if (!hasText) body += `<p class="note">לא הצלחנו לחלץ את תוכן הכתבה (ייתכן שמדובר בכתבה מיוחדת, וידאו או תוכן למנויים).</p>`;
@@ -80,7 +92,7 @@ export function render(a, url) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex">
 <title>${esc(a.title)} | ynet נקי</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/reader.css?v=font-18px-20261003-adjust"></head><body>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/reader.css?v=font-18px-video-20261003"></head><body>
 <header><h1><a href="/">ynet נקי</a></h1></header>
 <main class="reader"><article>
 <h1 class="title">${esc(a.title)}</h1>
