@@ -145,7 +145,7 @@ const fmtTime = new Intl.DateTimeFormat("he-IL", { timeZone: tz, hour: "2-digit"
 const fmtDay = new Intl.DateTimeFormat("he-IL", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 const dayKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
 
-const flashRow = (f) => `<details class="fl"><summary><span>${esc(f.title)}</span><time>${fmtTime.format(f.date)}</time></summary><div class="fb">${f.img ? `<img src="${esc(f.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}${f.summary && f.summary !== f.title ? `<p>${esc(f.summary)}</p>` : ""}<a href="/read?u=${encodeURIComponent(f.link)}">לכתבה המלאה ‹</a></div></details>`;
+const flashRow = (f) => `<details class="fl"><summary><span>${esc(f.title)}</span><time datetime="${f.date.toISOString()}">${fmtTime.format(f.date)}</time></summary><div class="fb">${f.img ? `<img src="${esc(f.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""}${f.summary && f.summary !== f.title ? `<p>${esc(f.summary)}</p>` : ""}<a href="/read?u=${encodeURIComponent(f.link)}">לכתבה המלאה ‹</a></div></details>`;
 
 const liveHomeScript = String.raw`<script>
 (()=>{
